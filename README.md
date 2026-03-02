@@ -1,6 +1,6 @@
 <div align="center">
 
-# Project CuteLatina
+# Project RANKALF
 
 <img src="https://img.shields.io/badge/UNC-75-yellow">
 <img src="https://img.shields.io/badge/sUNC-44-orange">
