@@ -1,35 +1,80 @@
-# Project Overview
+<div align="center">
 
-## UNC Status
-- **UNC:** 75  
-- **sUNC:** 44  
+# Project CuteLatina
 
----
+<img src="https://img.shields.io/badge/UNC-75-yellow">
+<img src="https://img.shields.io/badge/sUNC-44-orange">
+<img src="https://img.shields.io/badge/Build-760d064-blue">
 
-## Build Information
-- **Build Version:** `760d064d05424689`
-- **Offsets:**  
-  https://dumper.jonah.cool/offsets.h
+</div>
 
 ---
 
-## How to Build
+## ⚠️ Legal
 
-1. Set the configuration to **Release | x64**
-2. Create a **basic UI**
-3. Build the UI so the output goes into the project’s **`Build`** folder  
-   - The folder may be generated automatically once the module is built
-4. Run and **test** the build
+**NOT allowed:**
+- Reselling
+- Paywalling
+- Commercial redistribution
+
+**Allowed:**
+- Educational use
+- Research
+- Personal learning
 
 ---
 
-## API Usage
+## 📊 Status
 
-### Inject Code
+| Metric | Score |
+|--------|-------|
+| UNC | 75 |
+| sUNC | 44 |
+
+| Build | Value |
+|-------|-------|
+| Version | `760d064d05424689` |
+| Offsets | https://dumper.jonah.cool/offsets.h |
+
+---
+
+## 🤝 Contributors Wanted
+
+**Areas:**
+- Increase UNC/sUNC
+- Stability & performance
+- Detection handling
+- Features
+- Code cleanup
+- Documentation
+
+**Experience:**
+- C++
+- Reverse engineering
+- Exploit development
+
+---
+
+## 🔧 Build
+
+1. Release | x64
+2. Create basic UI
+3. Build UI → `/Build` folder
+4. Test
+
+---
+
+## 📚 API
+
 ```cpp
+// Inject
 CuteLatina("")
 ```
-### Execute Code
 ```cpp
-CuteLatina(string [script])
+// Execute
+CuteLatina("script here")
 ```
+<div align="center">
+For educational purposes only
+
+⭐ Star · 🤝 Contribute
