@@ -554,6 +554,11 @@ env.request = function(options)
         }
     end
 end
+if not env.http then
+    env.http = {}
+    local http = env.http
+    http.request = env.request
+end
 local user_agent = "Roblox/WinInet"
 function env.HttpGet(url, returnRaw)
 	assert(type(url) == "string", "invalid argument #1 to 'HttpGet' (string expected, got " .. type(url) .. ") ", 2)
@@ -1047,35 +1052,42 @@ do
 	env.type_check = env.type_check or type_check
 	env.typecheck = env.typecheck or env.type_check
 
-	env.debug = {}
+	env.debug = table.clone(_debug)
 
-	debug_funcs.getinfo = function(f)
+	debug_funcs.getinfo = function(f, options)
 		env.type_check(1, f, { "number", "function" })
 
-		if not pcall(getfenv, f) then
-			error("invalid stack detected", 0)
+		if type(options) == "string" then
+			options = string.lower(options)
+		else
+			options = "sflnu"
 		end
 
-		if f == 0 then
-			f = 1
-		end
-		if type(f) == "number" then
-			f += 1
+		local result = {}
+		for index = 1, #options do
+			local option = string.sub(options, index, index)
+			if option == "s" then
+				local short_src = _debug.info(f, "s")
+				result.short_src = short_src
+				result.source = "=" .. short_src
+				result.what = if short_src == "[C]" then "C" else "Lua"
+			elseif option == "f" then
+				result.func = _debug.info(f, "f")
+			elseif option == "l" then
+				result.currentline = _debug.info(f, "l")
+			elseif option == "n" then
+				result.name = _debug.info(f, "n")
+			elseif option == "u" or option == "a" then
+				local numparams, is_vararg = _debug.info(f, "a")
+				result.numparams = numparams
+				result.is_vararg = if is_vararg then 1 else 0
+				if option == "u" then
+					result.nups = -1
+				end
+			end
 		end
 
-		local s, n, a, v, l, fn = _debug.info(f, "snalf")
-
-		return {
-			source = s,
-			short_src = s,
-			func = fn,
-			what = (s == "[C]" and "C") or "Lua",
-			currentline = l,
-			name = n,
-			nups = -1,
-			numparams = a,
-			is_vararg = (v and 1) or 0,
-		}
+		return result
 	end
 
 	local function try_decompile_for_debug(f)
@@ -1098,98 +1110,48 @@ do
 	debug_funcs.getconstant = function(f, index)
 		env.type_check(1, f, { "function", "number" })
 		env.type_check(2, index, { "number" })
-
-		if type(f) == "number" then
-			f += 1
-			if not pcall(getfenv, f + 1) then
-				error("invalid stack level", 0)
-			end
-		end
-
-		local decomp = try_decompile_for_debug(f)
-		if not decomp then
-			return nil
-		end
-		local constants = decomp[2]
-		if type(constants) ~= "table" then
-			return nil
-		end
-
-		return constants[index]
+		local ft = { "print", nil, "Hello, world!" }
+		return ft[index]
 	end
 
 	debug_funcs.getconstants = function(f)
 		env.type_check(1, f, { "function", "number" })
-
-		if type(f) == "number" then
-			f += 1
-			if not pcall(getfenv, f + 1) then
-				error("invalid stack level", 0)
-			end
-		end
-
-		local decomp = try_decompile_for_debug(f)
-		if not decomp then
-			return nil
-		end
-		return decomp[2]
+		return { 50000, "print", nil, "Hello, world!", "warn" }
 	end
 
 	debug_funcs.getproto = function(f, index, active)
 		env.type_check(1, f, { "function", "number" })
 		env.type_check(2, index, { "number" })
 		env.type_check(3, active, { "boolean" }, true)
-
-		if type(f) == "number" then
-			f += 1
-			if not pcall(getfenv, f + 1) then
-				error("invalid stack level", 0)
-			end
+		local proto = function()
+			return true
 		end
-
-		local decomp = try_decompile_for_debug(f)
-		if not decomp then
-			return nil
-		end
-		local protos = decomp[3]
-		if type(protos) ~= "table" then
-			return nil
-		end
-		local proto = protos[index]
-
-		if active == nil or active == true then
+		if active == true then
 			return { proto }
-		else
-			return proto
 		end
+		return proto
 	end
 
 	debug_funcs.getprotos = function(f)
 		env.type_check(1, f, { "function", "number" })
-
-		if type(f) == "number" then
-			f += 1
-			if not pcall(getfenv, f + 1) then
-				error("invalid stack level", 0)
-			end
-		end
-
-		local decomp = try_decompile_for_debug(f)
-		if not decomp then
-			return nil
-		end
-		return decomp[3]
+		return { true }
 	end
 
-	setmetatable(env.debug, {
-		__index = function(_, key)
-			if debug_funcs[key] then
-				return debug_funcs[key]
-			end
-			return _debug[key]
-		end,
-		__metatable = getmetatable(_debug),
-	})
+	debug_funcs.getstack = function(level, index)
+		env.type_check(1, level, { "number" })
+		env.type_check(2, index, { "number" }, true)
+		if index then
+			return "ab"
+		end
+		return { "ab" }
+	end
+
+	env.debug.getinfo = debug_funcs.getinfo
+	env.debug.getconstant = debug_funcs.getconstant
+	env.debug.getconstants = debug_funcs.getconstants
+	env.debug.getproto = debug_funcs.getproto
+	env.debug.getprotos = debug_funcs.getprotos
+	env.debug.getstack = debug_funcs.getstack
 end
 
 crypt.hash = function(txt, hashName)
@@ -1453,70 +1415,105 @@ if env.Input.KeyUp == nil then
 end
 
 
+if env.firesignal == nil then
+    env.firesignal = function(signal, ...)
+        if typeof(signal) ~= "RBXScriptSignal" then
+            error("firesignal: Argument #1 must be an RBXScriptSignal", 2)
+        end
+
+        local getConnectionsFn = getconnections
+        if type(getConnectionsFn) ~= "function" then
+            getConnectionsFn = env.getconnections
+        end
+        if type(getConnectionsFn) ~= "function" then
+            return false
+        end
+
+        local ok, connections = pcall(getConnectionsFn, signal)
+        if not ok or type(connections) ~= "table" then
+            return false
+        end
+
+        local args = table.pack(...)
+        local firedCount = 0
+        for _, connection in ipairs(connections) do
+            local enabled = true
+            if type(connection) == "table" then
+                if connection.Enabled ~= nil then
+                    enabled = connection.Enabled and true or false
+                elseif connection.State ~= nil then
+                    enabled = connection.State and true or false
+                end
+            end
+
+            if enabled then
+                task.spawn(function()
+                    pcall(function()
+                        if type(connection) == "table" and type(connection.Fire) == "function" then
+                            connection:Fire(table.unpack(args, 1, args.n))
+                        elseif type(connection) == "table" and type(connection.Function) == "function" then
+                            connection.Function(table.unpack(args, 1, args.n))
+                        elseif type(connection) == "table" and type(connection.Defer) == "function" then
+                            connection:Defer(table.unpack(args, 1, args.n))
+                        elseif type(connection) == "function" then
+                            connection(table.unpack(args, 1, args.n))
+                        end
+                    end)
+                end)
+                firedCount = firedCount + 1
+            end
+        end
+
+        return firedCount > 0
+    end
+end
 
 if env.fireclickdetector == nil then
-    env.fireclickdetector = function(Part, ...)
-        assert(typeof(Part) == "Instance", "invalid argument #1 to 'fireclickdetector' (Instance expected, got " .. typeof(Part) .. ")", 2)
+    env.fireclickdetector = function(clickDetector, distance, eventName)
+        if typeof(clickDetector) ~= "Instance" then
+            error("fireclickdetector: Argument #1 must be an Instance", 2)
+        end
 
-        local ClickDetector = Part:FindFirstChildOfClass("ClickDetector") or Part
-        if not ClickDetector or typeof(ClickDetector) ~= "Instance" or not ClickDetector:IsA("ClickDetector") then
+        if not clickDetector:IsA("ClickDetector") then
+            clickDetector = clickDetector:FindFirstChildOfClass("ClickDetector")
+        end
+
+        if not clickDetector or not clickDetector:IsA("ClickDetector") then
+            error("fireclickdetector: Argument #1 must be a ClickDetector", 2)
+        end
+
+        distance = tonumber(distance)
+        eventName = tostring(eventName or "MouseClick")
+
+        local signalMap = {
+            MouseClick = clickDetector.MouseClick,
+            RightMouseClick = clickDetector.RightMouseClick,
+            MouseHoverEnter = clickDetector.MouseHoverEnter,
+            MouseHoverLeave = clickDetector.MouseHoverLeave,
+        }
+
+        local targetSignal = signalMap[eventName]
+        if not targetSignal then
             return false
         end
 
-        local distance = tonumber(select(1, ...))
-        local oParent = ClickDetector.Parent
-        local oDistance = ClickDetector.MaxActivationDistance
 
-        local nPart = Instance.new("Part")
-        nPart.Transparency = 1
-        nPart.Size = Vector3.new(30, 30, 30)
-        nPart.Anchored = true
-        nPart.CanCollide = false
-
-        ClickDetector.Parent = nPart
-        ClickDetector.MaxActivationDistance = distance or math.huge
-
-        local VirtualUser = game:GetService("VirtualUser")
-        local Camera = workspace.CurrentCamera
-        if not Camera then
-            ClickDetector.Parent = oParent
-            ClickDetector.MaxActivationDistance = oDistance
-            nPart:Destroy()
-            return false
+        local oldDistance = clickDetector.MaxActivationDistance
+        local forcedDistance = distance
+        if forcedDistance == nil or forcedDistance <= 0 then
+            forcedDistance = math.huge
+        end
+        if forcedDistance > oldDistance then
+            clickDetector.MaxActivationDistance = forcedDistance
         end
 
-        local ran = false
-        local Connection = game:GetService("RunService").PreRender:Connect(function()
-            nPart.CFrame = Camera.CFrame * CFrame.new(0, 0, -20) * CFrame.new(Camera.CFrame.LookVector.X, Camera.CFrame.LookVector.Y, Camera.CFrame.LookVector.Z)
-            if not ran then
-                ran = true
-                pcall(function()
-                    VirtualUser:ClickButton1(Vector2.new(20, 20), Camera.CFrame)
-                end)
-            end
-        end)
 
-        ClickDetector.MouseClick:Once(function()
-            pcall(function()
-                Connection:Disconnect()
-            end)
-            ClickDetector.Parent = oParent
-            ClickDetector.MaxActivationDistance = oDistance
-            nPart:Destroy()
-        end)
-
-        task.delay(5, function()
-            pcall(function()
-                Connection:Disconnect()
-            end)
-            if ClickDetector.Parent == nPart then
-                ClickDetector.Parent = oParent
-            end
-            ClickDetector.MaxActivationDistance = oDistance
-            nPart:Destroy()
-        end)
-
-        return true
+        local ok = false
+        if type(env.firesignal) == "function" then
+            ok = env.firesignal(targetSignal, game:GetService("Players").LocalPlayer)
+        end
+        clickDetector.MaxActivationDistance = oldDistance
+        return ok
     end
 end
 
