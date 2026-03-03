@@ -2,7 +2,7 @@
 
 # Project RANKALF
 
-<img src="https://img.shields.io/badge/UNC-75-yellow">
+<img src="https://img.shields.io/badge/UNC-82-green">
 <img src="https://img.shields.io/badge/sUNC-44-orange">
 <img src="https://img.shields.io/badge/Build-760d064-blue">
 
@@ -28,7 +28,7 @@
 
 | Metric | Score |
 |--------|-------|
-| UNC | 75 |
+| UNC | 82 |
 | sUNC | 44 |
 
 | Build | Value |
