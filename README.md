@@ -8,8 +8,8 @@
 
 </div>
 ---
-#Legal Status,
-#This project uses  CC BY-NC-SA 4.0, legal action will be taken.
+## Legal Status,
+# This project uses  CC BY-NC-SA 4.0, legal action will be taken.
 ---
 ## 📊 Status
 
