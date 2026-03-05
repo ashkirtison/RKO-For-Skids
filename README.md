@@ -7,7 +7,9 @@
 <img src="https://img.shields.io/badge/Build-d599f7fc52a8404c-blue">
 
 </div>
-
+---
+#Legal Status,
+#This project uses  CC BY-NC-SA 4.0, legal action will be taken.
 ---
 ## 📊 Status
 
