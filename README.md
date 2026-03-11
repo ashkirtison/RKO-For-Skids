@@ -8,7 +8,6 @@
 
 </div>
 
----
 
 ## 📜 License
 This project is licensed under **CC BY-NC-SA 4.0**.
@@ -30,7 +29,6 @@ This project is licensed under **CC BY-NC-SA 4.0**.
 | Version | `d599f7fc52a8404c` |
 | Offsets | https://dumper.jonah.cool/offsets.h |
 
----
 
 ## 🔧 Build
 
@@ -38,8 +36,6 @@ This project is licensed under **CC BY-NC-SA 4.0**.
 2. Create basic UI
 3. Build UI → `/Build` folder
 4. Test
-
----
 
 ## 📚 API
 
