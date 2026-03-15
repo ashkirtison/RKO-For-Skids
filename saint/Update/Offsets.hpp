@@ -1,9 +1,9 @@
 #pragma once
 #include <Windows.h>
-#include <cstdint> // <-- Add this line
+#include <cstdint>
 
 namespace offsets {
-    const uintptr_t EnableLoadModule = 0x7B51AF8; // old: 0x67B90E8
+    const uintptr_t EnableLoadModule = 0x7B51AF8;
     inline constexpr uintptr_t Adornee = 0xD0;
     inline constexpr uintptr_t Anchored = 0x1AE;
     inline constexpr uintptr_t AnchoredMask = 0x2;
@@ -202,18 +202,4 @@ namespace offsets {
         inline constexpr uintptr_t Caps = 0x98;
     }
 }
-inline static uintptr_t identity_to_caps(uintptr_t i) {
-    uintptr_t ret = 0;
-    switch (i) {
-    case 4: ret = 0x2000000000000003LL; break;
-    case 3: ret = 0x200000000000000BLL; break;
-    case 5: ret = 0x2000000000000001LL; break;
-    case 6: ret = 0x600000000000000BLL; break;
-    case 8: ret = 0x200000000000003FLL; break;
-    case 9: ret = 12LL; break;
-    case 10: ret = 0x6000000000000003LL; break;
-    case 11: ret = 0x2000000000000000LL; break;
-    default: ret = 0LL; break;
-    }
-    return ret | 0x3FFFFFF00LL;
-};
+
