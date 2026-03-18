@@ -39,13 +39,15 @@ This project is licensed under **CC BY-NC-SA 4.0**.
 
 ## 📚 API
 
-```cpp
+```cs
 // Inject
-CuteLatina("")
+        [DllImport("Module.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void inj();
 ```
-```cpp
+```cs
 // Execute
-CuteLatina("script here")
+        [DllImport("Module.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void execute(string script);
 ```
 <div align="center">
 For educational purposes only
