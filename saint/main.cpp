@@ -2968,16 +2968,20 @@ std::string Convert(const wchar_t* wideStr) {
 
 
 
-bool Injected = false;
+static bool Injected = false;
 
-extern "C" __declspec(dllexport) void CuteLatina(const wchar_t* input) {
-    if (!Injected) {
-        Injected = true;
-        main(); 
-    }
+// First function: Handles injection
+extern "C" __declspec(dllexport) void inj(const wchar_t* input) {
+	if (!Injected) {
+		Injected = true;
+		main(); // Or whatever initialization function you need
+	}
+}
 
-    std::string source = Convert(input);
-    if (source.length() >= 1) {
-        Execute(source);
-    }
+// Second function: Handles execution
+extern "C" __declspec(dllexport) void execute(const wchar_t* input) {
+	std::string source = Convert(input);
+	if (source.length() >= 1) {
+		Execute(source);
+	}
 }
