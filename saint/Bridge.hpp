@@ -578,21 +578,21 @@ inline void Load() {
 		return ws;
 	};
 
-	env["writefile"] = [&](std::string dta, nlohmann::json set, DWORD pid) {
-		std::string path = get_path_from_set("", set); // writefile passes content in dta, path in set
-		if (path.empty()) return std::string("");
+	env["writefile"] = [](std::string dta, nlohmann::json set, DWORD pid) {
+		std::string filename = set["name"];
 
-		std::filesystem::path ws = get_workspace();
-		std::filesystem::path file = ws / path;
-
-		if (file.has_parent_path() && !std::filesystem::exists(file.parent_path())) {
-			std::filesystem::create_directories(file.parent_path());
+		size_t slash = filename.find_last_of("/\\");
+		if (slash != std::string::npos) {
+			std::filesystem::create_directories(filename.substr(0, slash));
 		}
 
-		std::ofstream out(file, std::ios::binary);
-		out << dta;
-		out.close();
-		return std::string("");
+		std::ofstream file(filename, std::ios::binary);
+		if (file.is_open()) {
+			file.write(dta.c_str(), dta.size());
+			file.close();
+			return "";
+		}
+		return "";
 		};
 	env["Lz4Compress"] = [](std::string dta, nlohmann::json set, DWORD pid) {
 		size_t len = dta.size();
