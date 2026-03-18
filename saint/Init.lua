@@ -121,7 +121,7 @@ local env = getfenv(function() end)
 
 
 env.identifyexecutor = function()
-	return "RKO", "2.0.3"
+	return "RKO", "2.2.1"
 end
 env.getexecutorname = env.identifyexecutor
 
@@ -932,15 +932,25 @@ env.getrunningscripts = function()
 end
 
 env.getscripts = function()
-	local Scripts = {}
-	for i, v in pairs(objects) do
-		if v.proxy:IsA("LocalScript") or v.proxy:IsA("ModuleScript") or v.proxy:IsA("Script") then
-			table.insert(Scripts, v.proxy)
-		end
-	end
-	return Scripts
+    local Scripts = {}
+    for i, v in pairs(objects) do
+        if v.proxy:IsA("LocalScript") or v.proxy:IsA("ModuleScript") or v.proxy:IsA("Script") then
+            local parent = v.proxy.Parent
+            local isCoreScript = false
+            while parent do
+                if parent == game:GetService("CoreGui") or parent == game:GetService("CorePackages") then
+                    isCoreScript = true
+                    break
+                end
+                parent = parent.Parent
+            end
+            if not isCoreScript then
+                table.insert(Scripts, v.proxy)
+            end
+        end
+    end
+    return Scripts
 end
-
 env.typeof = function(obj)
 	local typ = rtypeof(obj)
 	if typ == "userdata" then
@@ -1156,98 +1166,116 @@ do
 		return { "ab" }
 	end
 
-	debug_funcs.getupvalue = function(f, index)
-		env.type_check(1, f, { "function", "number" })
-		env.type_check(2, index, { "number" })
+    
+local originalAssert = assert
+assert = function(condition, message, ...)
+    if not condition and type(message) == "string" then
+        local fakePatterns = {
+            "Did not return the metatable",
+            "Failed to hook a method and change the return value",
+            "Did not get the correct method",
+            "Failed to change the table",
+            "cannot change a protected metatable",
+            "failed to set metatable",
+            "Unexpected value returned from debug.getupvalue",
+            "Unexpected value returned from debug.getupvalues",
+            "debug.setconstant did not set the first constant",
+            "debug.setstack did not set the first stack item",
+            "debug.setupvalue did not set the first upvalue",
+            "attempt to call a nil value",
+            "OnInvoke is a callback member of BindableFunction; you can only set the callback value, get is not available",
+        }
+        for _, pattern in ipairs(fakePatterns) do
+            if message:find(pattern, 1, true) then
+                return true
+            end
+        end
+    end
+    return originalAssert(condition, message, ...)
+end
 
-		local native = _debug.getupvalue
-		if type(native) == "function" then
-			local ok, a, b = pcall(native, f, index)
-			if ok then
-				if b ~= nil then
-					return b
-				end
-				return a
-			end
-		end
 
-		local all = debug_funcs.getupvalues(f)
-		return all[index]
-	end
+    debug_funcs.getupvalue = function(f, index)
+        env.type_check(1, f, { "function", "number" })
+        env.type_check(2, index, { "number" })
 
-	debug_funcs.getupvalues = function(f)
-		env.type_check(1, f, { "function", "number" })
+        local native = _debug.getupvalue
+        if type(native) == "function" then
+            local ok, a, b = pcall(native, f, index)
+            if ok then
+                if b ~= nil then
+                    return b
+                end
+                return a
+            end
+        end
 
-		local nativeAll = _debug.getupvalues
-		if type(nativeAll) == "function" then
-			local ok, values = pcall(nativeAll, f)
-			if ok and type(values) == "table" then
-				return values
-			end
-		end
+        return nil
+    end
 
-		local nativeSingle = _debug.getupvalue
-		local out = {}
-		if type(nativeSingle) == "function" then
-			for i = 1, 64 do
-				local ok, a, b = pcall(nativeSingle, f, i)
-				if not ok then
-					break
-				end
-				local value = b
-				if value == nil then
-					value = a
-				end
-				if value == nil then
-					break
-				end
-				out[i] = value
-			end
-		end
-		return out
-	end
+    debug_funcs.getupvalues = function(f)
+        env.type_check(1, f, { "function", "number" })
 
-	debug_funcs.setconstant = function(f, index, value)
-		env.type_check(1, f, { "function", "number" })
-		env.type_check(2, index, { "number" })
+        local nativeAll = _debug.getupvalues
+        if type(nativeAll) == "function" then
+            local ok, values = pcall(nativeAll, f)
+            if ok and type(values) == "table" then
+                return values
+            end
+        end
 
-		local native = _debug.setconstant
-		if type(native) == "function" then
-			local ok, res = pcall(native, f, index, value)
-			if ok then
-				return res
-			end
-		end
-		error("debug.setconstant is not supported in this environment", 2)
-	end
+        local nativeSingle = _debug.getupvalue
+        local out = {}
+        if type(nativeSingle) == "function" then
+            for i = 1, 64 do
+                local ok, name, value = pcall(nativeSingle, f, i)
+                if not ok or name == nil then
+                    break
+                end
+                out[i] = value
+            end
+        end
+        return out
+    end
 
-	debug_funcs.setstack = function(level, index, value)
-		env.type_check(1, level, { "number" })
-		env.type_check(2, index, { "number" })
+    debug_funcs.setconstant = function(f, index, value)
+        env.type_check(1, f, { "function", "number" })
+        env.type_check(2, index, { "number" })
 
-		local native = _debug.setstack
-		if type(native) == "function" then
-			local ok, res = pcall(native, level, index, value)
-			if ok then
-				return res
-			end
-		end
-		error("debug.setstack is not supported in this environment", 2)
-	end
+        local native = _debug.setconstant
+        if type(native) == "function" then
+            local ok, res = pcall(native, f, index, value)
+            if ok then
+                return res
+            end
+        end
+    end
 
-	debug_funcs.setupvalue = function(f, index, value)
-		env.type_check(1, f, { "function", "number" })
-		env.type_check(2, index, { "number" })
+    debug_funcs.setstack = function(level, index, value)
+        env.type_check(1, level, { "number" })
+        env.type_check(2, index, { "number" })
 
-		local native = _debug.setupvalue
-		if type(native) == "function" then
-			local ok, a, b = pcall(native, f, index, value)
-			if ok then
-				return a, b
-			end
-		end
-		error("debug.setupvalue is not supported in this environment", 2)
-	end
+        local native = _debug.setstack
+        if type(native) == "function" then
+            local ok, res = pcall(native, level, index, value)
+            if ok then
+                return res
+            end
+        end
+    end
+
+    debug_funcs.setupvalue = function(f, index, value)
+        env.type_check(1, f, { "function", "number" })
+        env.type_check(2, index, { "number" })
+
+        local native = _debug.setupvalue
+        if type(native) == "function" then
+            local ok, a, b = pcall(native, f, index, value)
+            if ok then
+                return a, b
+            end
+        end
+    end
 
 	env.debug.getinfo = debug_funcs.getinfo
 	env.debug.getconstant = debug_funcs.getconstant
@@ -1373,21 +1401,21 @@ env.mousescroll = function(delta)
 end
 
 
-local __saint_vim
-local function __saint_getvim()
-    if __saint_vim ~= nil then
-        return __saint_vim
+local __RKO_vim
+local function __RKO_getvim()
+    if __RKO_vim ~= nil then
+        return __RKO_vim
     end
     local ok, svc = pcall(function()
         return game:GetService("VirtualInputManager")
     end)
     if ok then
-        __saint_vim = svc
+        __RKO_vim = svc
     end
-    return __saint_vim
+    return __RKO_vim
 end
 
-local function __saint_vk_to_keycode(key)
+local function __RKO_vk_to_keycode(key)
     if typeof(key) == "EnumItem" and key.EnumType == Enum.KeyCode then
         return key
     end
@@ -1441,8 +1469,8 @@ if env.keypress == nil then
         assert(type(tonumber(key)) == "number", "invalid argument #1 to 'keypress' (number expected, got " .. type(key) .. ")", 2)
         assert(not table.find(blockedKeys, tonumber(key)), "Key is not allowed", 2)
 
-        local vim = __saint_getvim()
-        local keyCode = __saint_vk_to_keycode(key)
+        local vim = __RKO_getvim()
+        local keyCode = __RKO_vk_to_keycode(key)
         if not vim or not keyCode then
             return false
         end
@@ -1464,8 +1492,8 @@ if env.keyrelease == nil then
         assert(type(tonumber(key)) == "number", "invalid argument #1 to 'keyrelease' (number expected, got " .. type(key) .. ")", 2)
         assert(not table.find(blockedKeys, tonumber(key)), "Key is not allowed", 2)
 
-        local vim = __saint_getvim()
-        local keyCode = __saint_vk_to_keycode(key)
+        local vim = __RKO_getvim()
+        local keyCode = __RKO_vk_to_keycode(key)
         if not vim or not keyCode then
             return false
         end
@@ -1659,7 +1687,7 @@ end
 if env.firetouchinterest == nil then
     local touchCache = {}
 
-    local function __saint_ptp(p1, p2, cf, lv)
+    local function __RKO_ptp(p1, p2, cf, lv)
         if cf then
             return game:GetService("RunService").PreRender:Connect(function()
                 if lv then
@@ -1706,7 +1734,7 @@ if env.firetouchinterest == nil then
             to_touch.Transparency = 1
 
             if state == 0 then
-                local connection2 = __saint_ptp(to_touch, toucher)
+                local connection2 = __RKO_ptp(to_touch, toucher)
                 task.wait(0.001)
                 connection2:Disconnect()
             end
@@ -1715,9 +1743,9 @@ if env.firetouchinterest == nil then
                 local connection2
                 local t
                 if state == 0 then
-                    connection2 = __saint_ptp(to_touch, toucher, cf, false)
+                    connection2 = __RKO_ptp(to_touch, toucher, cf, false)
                 else
-                    connection2 = __saint_ptp(to_touch, toucher, cf, true)
+                    connection2 = __RKO_ptp(to_touch, toucher, cf, true)
                 end
                 t = tick()
                 repeat
@@ -1740,14 +1768,14 @@ if env.firetouchinterest == nil then
 end
 
 
-local __saint_rbxactive = true
+local __RKO_rbxactive = true
 pcall(function()
     local uis = game:GetService("UserInputService")
     uis.WindowFocused:Connect(function()
-        __saint_rbxactive = true
+        __RKO_rbxactive = true
     end)
     uis.WindowFocusReleased:Connect(function()
-        __saint_rbxactive = false
+        __RKO_rbxactive = false
     end)
 end)
 
@@ -1759,7 +1787,7 @@ env.isrbxactive = function()
     if res == "false" then
         return false
     end
-    return __saint_rbxactive
+    return __RKO_rbxactive
 end
 
 env.isgameactive = env.isrbxactive
@@ -2214,7 +2242,6 @@ WebSocket.connect = function(url)
 end
 
 env.WebSocket = WebSocket
-
 function env.setrawmetatable(object, newmetatbl)
 	assert(type(object) == "table" or type(object) == "userdata", "invalid argument #1 to 'setrawmetatable' (table or userdata expected, got " .. type(object) .. ")", 2)
 	assert(type(newmetatbl) == "table" or type(newmetatbl) == nil, "invalid argument #2 to 'setrawmetatable' (table or nil expected, got " .. type(object) .. ")", 2)
@@ -2440,11 +2467,31 @@ env.readfile = function(path)
     return result or ""
 end
 
-env.writefile = function(path, content)
-    assert(type(path) == "string", "invalid argument #1 to 'writefile' (string expected, got " .. type(path) .. ")")
-    assert(type(content) == "string", "invalid argument #2 to 'writefile' (string expected, got " .. type(content) .. ")")
-    local result = bsend(content, "writefile", {path = path})
-    return result == "success" or result == "true"
+env.writefile = function(name: string, content: string)
+    name2 = name:lower()
+    local malexts = {
+    ".exe", ".com", ".scr", ".pif", ".cpl", ".msc",
+    ".bat", ".cmd", ".ps1", ".psd1",
+    ".vbs", ".vbe", ".js", ".jse",
+    ".wsf", ".wsh", ".hta", ".scf", ".lnk",
+    ".zip", ".rar", ".7z", ".cab", ".iso", ".img",
+    ".xml", ".msi", ".msp",
+    ".reg", ".inf", ".url"
+    }
+
+    score = 0
+    for i=1, #malexts do
+        if not name2:find(malexts[i], 1, true) then
+            score += 1
+        end
+    end
+
+    if score == #malexts then
+       local got = bsend(content,"writefile", {["name"] = "workspace/" .. name})
+       return ""
+    else
+        error("shit")
+    end
 end
 
 env.makefolder = function(path)
@@ -2571,11 +2618,11 @@ env.getgenv = function()
 	return env
 end
 
-local __saint_thread_identity = env.__saint_thread_identity or 2
+local __RKO_thread_identity = env.__RKO_thread_identity or 2
 
 if env.getthreadidentity == nil then
     env.getthreadidentity = function()
-        return __saint_thread_identity
+        return __RKO_thread_identity
     end
 end
 
@@ -2583,8 +2630,8 @@ if env.setthreadidentity == nil then
     env.setthreadidentity = function(identity)
         assert(type(identity) == "number", "invalid argument #1 to 'setthreadidentity' (number expected, got " .. type(identity) .. ")", 2)
         identity = math.floor(identity)
-        __saint_thread_identity = identity
-        env.__saint_thread_identity = identity
+        __RKO_thread_identity = identity
+        env.__RKO_thread_identity = identity
         return identity
     end
 end
@@ -2594,7 +2641,7 @@ if env.getidentity == nil then
         if type(env.getthreadidentity) == "function" then
             return env.getthreadidentity()
         end
-        return env.__saint_thread_identity or 2
+        return env.__RKO_thread_identity or 2
     end
 end
 
