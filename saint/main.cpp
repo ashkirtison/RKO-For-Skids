@@ -2513,7 +2513,7 @@ void decompiler()
 
     {
 
-        const char* url = "https://raw.githubusercontent.com/HyperCraxy/RKOAPI/main/server.exe";
+        const char* url = "https://raw.githubusercontent.com/HyperCraxy/ArlxAPI/main/server.exe";
 
         HRESULT hr = URLDownloadToFileA(nullptr, url, exePath.string().c_str(), 0, nullptr);
 
