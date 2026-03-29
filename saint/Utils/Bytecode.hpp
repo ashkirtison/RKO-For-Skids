@@ -9,6 +9,7 @@
 extern "C" {
 #include "../Dependecies/blake3/blake3.h"
 #include <zstd.h>
+#include "../Update/Offsets.hpp"
 }
 
 class BytecodeEncoder : public Luau::BytecodeEncoder {
@@ -181,15 +182,50 @@ class ModuleScriptClass {
 private:
     uintptr_t Self;
     HANDLE Handle;
+    template<typename T>
+    T Read(uintptr_t address) {
+        T buffer{};
+        ReadProcessMemory(Handle, (LPCVOID)address, &buffer, sizeof(T), nullptr);
+        return buffer;
+    }
 
-    std::string ClassName() {
-        // You need to implement this based on your memory structure
-        // This should return the class name ("LocalScript", "ModuleScript", etc.)
+    std::string ReadString(uintptr_t address, size_t maxLen = 100) {
+        std::vector<char> buffer(maxLen);
+        SIZE_T bytesRead;
+
+        if (ReadProcessMemory(Handle, (LPCVOID)address, buffer.data(), maxLen, &bytesRead)) {
+            return std::string(buffer.data());
+        }
+
         return "";
     }
 
-public:
-    ModuleScriptClass(uintptr_t self, HANDLE handle) : Self(self), Handle(handle) {}
+    std::string ClassName() {
+        if (!Self) return "";
 
-   
+        uintptr_t classDescriptor = Read<uintptr_t>(Self + offsets::ClassDescriptor);
+        if (!classDescriptor) return "";
+
+        uintptr_t classNamePtr = Read<uintptr_t>(classDescriptor + offsets::ClassDescriptorToClassName);
+        if (!classNamePtr) return "";
+
+        return ReadString(classNamePtr);
+    }
+
+public:
+    ModuleScriptClass(uintptr_t self, HANDLE handle)
+        : Self(self), Handle(handle) {
+    }
+
+    std::string GetClassName() {
+        return ClassName();
+    }
+
+    bool IsModuleScript() {
+        return ClassName() == "ModuleScript";
+    }
+
+    bool IsLocalScript() {
+        return ClassName() == "LocalScript";
+    }
 };
