@@ -1,9 +1,9 @@
 #pragma once
 #include <Windows.h>
-#include <cstdint> // <-- Add this line
+#include <cstdint>
 
 namespace offsets {
-    const uintptr_t EnableLoadModule = 0x72E9138; // old: 0x67B90E8
+    const uintptr_t EnableLoadModule = 0x72E9138;
     inline constexpr uintptr_t Adornee = 0xD0;
     inline constexpr uintptr_t Anchored = 0x1AE;
     inline constexpr uintptr_t AnchoredMask = 0x2;
