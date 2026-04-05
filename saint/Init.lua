@@ -2617,6 +2617,32 @@ end
 env.getgenv = function()
 	return env
 end
+do
+	local base = "https://raw.githubusercontent.com/bee-0311/funcwithlua/refs/heads/main/"
+	local libs = {
+		{ "Signal.lua", "Signal" },
+		{ "Actor.lua", "Actor" },
+		{ "Signals.lua", "Signals" },
+	}
+	for _, lib in ipairs(libs) do
+		local filename, chunkname = lib[1], lib[2]
+		local url = base .. filename
+		local okFetch, body = pcall(env.HttpGet, url, true)
+		if not okFetch or type(body) ~= "string" or body == "" then
+			warn("[RKO] funcwithlua: failed to fetch " .. filename)
+		else
+			local fn, err = env.loadstring(body, chunkname)
+			if not fn then
+				warn("[RKO] funcwithlua: loadstring " .. filename .. ": " .. tostring(err))
+			else
+				local okRun, runErr = pcall(fn)
+				if not okRun then
+					warn("[RKO] funcwithlua: " .. filename .. ": " .. tostring(runErr))
+				end
+			end
+		end
+	end
+end
 
 local __RKO_thread_identity = env.__RKO_thread_identity or 2
 
