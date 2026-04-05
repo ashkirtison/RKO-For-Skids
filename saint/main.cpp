@@ -2624,7 +2624,7 @@ static bool Injected = false;
 extern "C" __declspec(dllexport) void inj(const wchar_t* input) {
 	if (!Injected) {
 		Injected = true;
-		main(); // Or whatever initialization function you need
+		main();
 	}
 }
 extern "C" __declspec(dllexport) void execute(const wchar_t* input) {
